@@ -421,13 +421,19 @@ app.get('/health', (req, res) => {
 // Test Supabase connection endpoint
 app.get('/api/test-supabase', async (req, res) => {
   try {
-    if (!process.env.SUPABASE_URL || !process.env.SUPABASE_ANON_KEY) {
+    const hasUrl = !!process.env.SUPABASE_URL;
+    const hasAnonKey = !!process.env.SUPABASE_ANON_KEY;
+    const hasServiceKey = !!process.env.SUPABASE_SERVICE_KEY;
+
+    if (!hasUrl || !hasAnonKey) {
       return res.status(400).json({ 
         success: false, 
         error: 'Supabase environment variables not configured',
         details: {
-          url_configured: !!process.env.SUPABASE_URL,
-          anon_key_configured: !!process.env.SUPABASE_ANON_KEY
+          url_configured: hasUrl,
+          anon_key_configured: hasAnonKey,
+          service_key_configured: hasServiceKey,
+          instructions: 'Please set SUPABASE_URL and SUPABASE_ANON_KEY in your environment variables'
         }
       });
     }
@@ -439,8 +445,10 @@ app.get('/api/test-supabase', async (req, res) => {
       return res.json({
         success: true,
         message: 'Supabase connection successful',
-        url: process.env.SUPABASE_URL,
-        timestamp: new Date().toISOString()
+        url: process.env.SUPABASE_URL.substring(0, 30) + '...',
+        has_service_key: hasServiceKey,
+        timestamp: new Date().toISOString(),
+        status: 'Ready for authentication'
       });
     } else {
       return res.status(500).json({

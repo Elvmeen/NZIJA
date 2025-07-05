@@ -343,14 +343,24 @@
                 return;
             }
 
+            if (email.length < 3) {
+                showErrorMessage('Please enter a valid email address');
+                return;
+            }
+
             const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
             if (!emailRegex.test(email)) {
                 showErrorMessage('Please enter a valid email address');
                 return;
             }
 
+            if (password.length < 6) {
+                showErrorMessage('Password must be at least 6 characters long');
+                return;
+            }
+
             if (!supabase) {
-                showErrorMessage('Authentication service not available. Please refresh the page and try again.');
+                showErrorMessage('Authentication service not available. Please check your internet connection and refresh the page.');
                 return;
             }
 
@@ -363,12 +373,12 @@
                     showErrorMessage('Passwords do not match');
                     return;
                 }
-                if (password.length < 8) {
-                    showErrorMessage('Password must be at least 8 characters long');
+                if (password.length < 6) {
+                    showErrorMessage('Password must be at least 6 characters long');
                     return;
                 }
-                if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(password)) {
-                    showErrorMessage('Password must contain at least one uppercase letter, one lowercase letter, and one number');
+                if (!/(?=.*[a-zA-Z])(?=.*\d)/.test(password)) {
+                    showErrorMessage('Password must contain at least one letter and one number');
                     return;
                 }
             }
@@ -549,9 +559,60 @@
             setTimeout(() => errorMsg.remove(), 5000);
         }
 
+        // Add input event listeners for better UX
+        function setupInputValidation() {
+            const emailInput = document.getElementById('email');
+            const passwordInput = document.getElementById('password');
+            const nameInput = document.getElementById('name');
+            const confirmPasswordInput = document.getElementById('confirm-password');
+
+            // Real-time email validation
+            emailInput.addEventListener('blur', function() {
+                const email = this.value.trim();
+                if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                    this.classList.add('border-red-500');
+                    this.classList.remove('border-gray-300');
+                } else {
+                    this.classList.remove('border-red-500');
+                    this.classList.add('border-gray-300');
+                }
+            });
+
+            // Real-time password validation
+            passwordInput.addEventListener('input', function() {
+                const password = this.value;
+                if (password.length > 0 && password.length < 6) {
+                    this.classList.add('border-red-500');
+                    this.classList.remove('border-gray-300');
+                } else {
+                    this.classList.remove('border-red-500');
+                    this.classList.add('border-gray-300');
+                }
+            });
+
+            // Confirm password validation
+            if (confirmPasswordInput) {
+                confirmPasswordInput.addEventListener('input', function() {
+                    const password = passwordInput.value;
+                    const confirmPassword = this.value;
+                    if (confirmPassword.length > 0 && password !== confirmPassword) {
+                        this.classList.add('border-red-500');
+                        this.classList.remove('border-gray-300');
+                    } else {
+                        this.classList.remove('border-red-500');
+                        this.classList.add('border-gray-300');
+                    }
+                });
+            }
+        }
+
         // Initialize on page load
         window.onload = async function () {
             await initializeSupabase();
+            setupInputValidation();
+
+            // Focus on email input for better UX
+            document.getElementById('email').focus();
 
             // Check if user is already authenticated
             if (supabase) {
@@ -560,7 +621,11 @@
                     console.log('User already authenticated');
                     // Redirect to appropriate dashboard based on role
                     const role = localStorage.getItem('userRole') || 'customer';
-                    window.location.href = `/${role}/dashboard.html`;
+                    if (role === 'customer') {
+                        window.location.href = '/';
+                    } else {
+                        window.location.href = `/${role}/dashboard.html`;
+                    }
                 }
             }
         };
