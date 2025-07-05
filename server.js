@@ -64,6 +64,11 @@ app.get('/auth.html', (req, res) => {
   res.sendFile(path.join(__dirname, 'auth.html'));
 });
 
+// Serve debug authentication page
+app.get('/debug-auth.html', (req, res) => {
+  res.sendFile(path.join(__dirname, 'debug-auth.html'));
+});
+
 // Serve portal files
 app.get('/customer/dashboard.html', (req, res) => {
   res.sendFile(path.join(__dirname, 'customer', 'dashboard.html'));
@@ -309,9 +314,17 @@ app.get('/api/google-config', (req, res) => {
 
 // Get Supabase configuration
 app.get('/api/supabase-config', (req, res) => {
+  const url = process.env.SUPABASE_URL;
+  const anonKey = process.env.SUPABASE_ANON_KEY;
+  
+  console.log('🔍 Supabase config requested');
+  console.log('📋 URL configured:', url ? '✅ Yes' : '❌ No');
+  console.log('📋 Anon key configured:', anonKey ? '✅ Yes' : '❌ No');
+  
   res.json({ 
-    url: process.env.SUPABASE_URL || null,
-    anonKey: process.env.SUPABASE_ANON_KEY || null
+    url: url || null,
+    anonKey: anonKey || null,
+    configured: !!(url && anonKey)
   });
 });
 
@@ -403,6 +416,46 @@ app.get('/health', (req, res) => {
     timestamp: new Date().toISOString(),
     port: PORT 
   });
+});
+
+// Test Supabase connection endpoint
+app.get('/api/test-supabase', async (req, res) => {
+  try {
+    if (!process.env.SUPABASE_URL || !process.env.SUPABASE_ANON_KEY) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Supabase environment variables not configured',
+        details: {
+          url_configured: !!process.env.SUPABASE_URL,
+          anon_key_configured: !!process.env.SUPABASE_ANON_KEY
+        }
+      });
+    }
+
+    if (supabase) {
+      // Test basic connection
+      const { data, error } = await supabase.auth.getSession();
+      
+      return res.json({
+        success: true,
+        message: 'Supabase connection successful',
+        url: process.env.SUPABASE_URL,
+        timestamp: new Date().toISOString()
+      });
+    } else {
+      return res.status(500).json({
+        success: false,
+        error: 'Supabase client not initialized'
+      });
+    }
+  } catch (error) {
+    console.error('Supabase test error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Supabase connection test failed',
+      details: error.message
+    });
+  }
 });
 
 // Debug route to test server

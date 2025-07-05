@@ -161,26 +161,45 @@
         async function initializeSupabase() {
             try {
                 const response = await fetch('/api/supabase-config');
+                if (!response.ok) {
+                    throw new Error('Failed to fetch Supabase config');
+                }
+                
                 const config = await response.json();
 
-                if (config.url && config.anonKey && config.url !== 'your_supabase_project_url_here') {
+                if (config.url && config.anonKey && 
+                    config.url !== 'your_supabase_project_url_here' && 
+                    config.url !== null && 
+                    config.anonKey !== null) {
+                    
                     supabase = window.supabase.createClient(config.url, config.anonKey);
                     console.log('✅ Supabase initialized successfully');
+                    console.log('🔗 Supabase URL:', config.url);
                     
-                    // Test connection
-                    const { data, error } = await supabase.auth.getSession();
-                    if (error) {
-                        console.warn('⚠️ Supabase connection test failed:', error);
-                    } else {
-                        console.log('✅ Supabase connection verified');
+                    // Test connection with better error handling
+                    try {
+                        const { data, error } = await supabase.auth.getSession();
+                        if (error) {
+                            console.warn('⚠️ Supabase session check failed:', error.message);
+                            showErrorMessage('Authentication service connection issue: ' + error.message);
+                        } else {
+                            console.log('✅ Supabase connection verified');
+                            showSuccessMessage('Authentication service connected successfully!');
+                            setTimeout(() => {
+                                document.querySelector('.bg-green-500')?.remove();
+                            }, 3000);
+                        }
+                    } catch (sessionError) {
+                        console.warn('⚠️ Session test error:', sessionError);
                     }
                 } else {
-                    console.warn('⚠️ Supabase not configured - please set environment variables');
-                    showErrorMessage('Authentication service not configured. Please contact administrator.');
+                    console.warn('⚠️ Supabase not configured - missing environment variables');
+                    console.log('📝 Expected: SUPABASE_URL and SUPABASE_ANON_KEY');
+                    showErrorMessage('Authentication service not configured. Please set SUPABASE_URL and SUPABASE_ANON_KEY environment variables.');
                 }
             } catch (error) {
                 console.error('⚠️ Could not initialize Supabase:', error);
-                showErrorMessage('Failed to connect to authentication service.');
+                showErrorMessage('Failed to connect to authentication service: ' + error.message);
             }
         }
 
@@ -315,6 +334,9 @@
             const confirmPassword = document.getElementById('confirm-password').value;
             const selectedRole = document.querySelector('input[name="role"]:checked').value;
 
+            // Clear any existing error messages
+            document.querySelectorAll('.bg-red-500, .bg-green-500').forEach(el => el.remove());
+
             // Enhanced validation
             if (!email || !password) {
                 showErrorMessage('Please enter both email and password');
@@ -324,6 +346,11 @@
             const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
             if (!emailRegex.test(email)) {
                 showErrorMessage('Please enter a valid email address');
+                return;
+            }
+
+            if (!supabase) {
+                showErrorMessage('Authentication service not available. Please refresh the page and try again.');
                 return;
             }
 
@@ -354,6 +381,7 @@
 
                     if (authMode === 'signup') {
                         // Sign up with Supabase
+                        console.log('🔐 Attempting to sign up user with role:', selectedRole);
                         const { data, error } = await supabase.auth.signUp({
                             email: email,
                             password: password,
@@ -366,11 +394,17 @@
                         });
 
                         if (error) {
-                            if (error.message.includes('already registered')) {
-                                throw new Error('Email already registered. Please sign in or use forgot password.');
+                            console.error('Sign up error:', error);
+                            if (error.message.includes('already registered') || error.message.includes('already been registered')) {
+                                throw new Error('Email already registered. Please sign in instead.');
                             }
-                            throw error;
+                            if (error.message.includes('password')) {
+                                throw new Error('Password requirements not met. Please use at least 8 characters with uppercase, lowercase, and numbers.');
+                            }
+                            throw new Error(error.message || 'Sign up failed');
                         }
+
+                        console.log('✅ Sign up successful:', data);
 
                         if (data.user && !data.user.email_confirmed_at) {
                             // Create user profile entry
