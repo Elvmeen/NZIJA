@@ -46,7 +46,7 @@ app.use(session({
 
 // Serve main landing page at root
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'Nzija app.html'));
+  res.sendFile(path.join(__dirname, 'index.html'));
 });
 
 // Serve portal selection page
