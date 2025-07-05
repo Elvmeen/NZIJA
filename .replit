@@ -5,7 +5,7 @@ run = "npm run dev"
 channel = "stable-24_05"
 
 [workflows]
-runButton = "Start Nzija Server"
+runButton = "Run"
 
 [[workflows.workflow]]
 name = "Start Nzija Server"
@@ -20,6 +20,28 @@ args = "npm install"
 task = "shell.exec"
 args = "node server.js"
 
+[[workflows.workflow]]
+name = "Run"
+author = 44658684
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "node server.js"
+
+[[workflows.workflow]]
+name = "Start with Dependencies"
+author = 44658684
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm install --legacy-peer-deps"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "node server.js"
+
 [[ports]]
 localPort = 3000
 externalPort = 80
@@ -27,6 +49,10 @@ externalPort = 80
 [[ports]]
 localPort = 3001
 externalPort = 3001
+
+[[ports]]
+localPort = 5000
+externalPort = 5000
 
 [deployment]
 run = ["sh", "-c", "npm run dev"]
