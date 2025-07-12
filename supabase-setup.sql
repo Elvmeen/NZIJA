@@ -1,8 +1,6 @@
 
--- Run these commands in your Supabase SQL Editor
-
--- Enable Row Level Security
-ALTER TABLE auth.users ENABLE ROW LEVEL SECURITY;
+-- Supabase Database Setup Script
+-- Run this in your Supabase SQL Editor
 
 -- Create user profiles table
 CREATE TABLE IF NOT EXISTS public.user_profiles (
@@ -47,6 +45,11 @@ CREATE TABLE IF NOT EXISTS public.order_tracking (
   notes TEXT,
   timestamp TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
+
+-- Enable Row Level Security on our tables
+ALTER TABLE public.user_profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.orders ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.order_tracking ENABLE ROW LEVEL SECURITY;
 
 -- Row Level Security Policies
 
